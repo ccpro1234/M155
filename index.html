@@ -337,7 +337,7 @@ button{
 <header>
   <h2>📊 Smart Baccarat Ai DQN Killer Version 1</h2>
   <div>Professional Analysis System</div>
-  <div class="expire">⏳ วันหมดอายุ : 15 มีนาคม พ.ศ. 2569</div>
+  <div class="expire">⏳ วันหมดอายุ : 31 มีนาคม พ.ศ. 2569</div>
 </header>
 
 
@@ -414,20 +414,52 @@ async function startApp(){
 
 const token = localStorage.getItem("token")
 
+// ถ้ามี token → ซ่อน login ไว้ก่อน
+if(token){
+ document.getElementById("loginBox").style.display="none"
+}
+
+// ไม่มี token → แสดง login
 if(!token){
  document.getElementById("loginBox").style.display="flex"
+ document.getElementById("app").style.display="none"
  return
 }
 
-await checkToken()
+// ตรวจ token กับ server
+const ok = await checkToken()
 
+// token ไม่ถูกต้อง
+if(!ok){
+ localStorage.removeItem("token")
+ document.getElementById("loginBox").style.display="flex"
+ document.getElementById("app").style.display="none"
+ return
+}
+
+// token ถูกต้อง → เปิด app
 document.getElementById("loginBox").style.display="none"
 document.getElementById("app").style.display="block"
 
 render()
 
+// เริ่ม timer ตรวจ session
 if(!tokenTimer){
- tokenTimer = setInterval(checkToken,30000)
+
+ tokenTimer = setInterval(async ()=>{
+
+  const valid = await checkToken()
+
+  if(!valid){
+   clearInterval(tokenTimer)
+   tokenTimer = null
+   localStorage.removeItem("token")
+   alert("Session expired")
+   location.reload()
+  }
+
+ },30000)
+
 }
 
 }
@@ -437,7 +469,7 @@ if(!tokenTimer){
 
 
 /* ===== EXPIRATION (เพิ่มอย่างเดียว) ===== */
-const expireDate=new Date("2026-03-15T23:59:59");
+const expireDate=new Date("2026-03-31T23:59:59");
 if(new Date()>expireDate){
   document.body.innerHTML=
   "<h2 style='color:#ff6b6b;text-align:center;margin-top:20%'>⛔ โปรแกรมหมดอายุแล้ว</h2>";
@@ -449,77 +481,113 @@ async function checkToken(){
 
 try{
 
-const token=localStorage.getItem("token")
+ const token = localStorage.getItem("token")
 
-if(!token){
- location.reload()
- return
-}
+ if(!token){
+  return false
+ }
 
-const res=await fetch(
-"https://morning-block-55bb.havanalanna.workers.dev/api?token="+token
-)
+ // timeout controller
+ const controller = new AbortController()
+ const timeout = setTimeout(()=>controller.abort(),5000)
 
-const data=await res.json()
+ const res = await fetch(
+ "https://morning-block-55bb.havanalanna.workers.dev/api?token="
+ + encodeURIComponent(token),
+ {
+  signal: controller.signal
+ }
+ )
 
-if(data.status!=="ok"){
- alert("Session expired")
- location.reload()
-}
+ clearTimeout(timeout)
+
+ const data = await res.json()
+
+ if(data.status !== "ok"){
+  return false
+ }
+
+ return true
 
 }catch(e){
-
-console.log("Token check error")
-
+ return false
 }
 
 }
-
 
 /* ===== LOGIN ===== */
 
 async function login(){
 
+const btn = document.querySelector(".loginPanel button")
+btn.disabled = true
+
 try{
 
- const user=document.getElementById("user").value
- const pass=document.getElementById("pass").value
+ const user = document.getElementById("user").value
+ const pass = document.getElementById("pass").value
 
- const res=await fetch(
+ const res = await fetch(
  "https://morning-block-55bb.havanalanna.workers.dev/handshake?user="
- +encodeURIComponent(user)+
- "&pass="+encodeURIComponent(pass)
+ + encodeURIComponent(user) +
+ "&pass=" + encodeURIComponent(pass)
  )
 
- const data=await res.json()
+ const data = await res.json()
 
- if(data.status==="ok"){
+ if(data.status === "ok"){
 
-  localStorage.setItem("token",data.token)
+  localStorage.setItem("token", data.token)
 
-  document.getElementById("loginBox").style.display="none"
-  document.getElementById("app").style.display="block"
+  const ok = await checkToken()
 
-  await checkToken()
+  if(!ok){
+   localStorage.removeItem("token")
+   location.reload()
+   return
+  }
+
+  document.getElementById("loginBox").style.display = "none"
+  document.getElementById("app").style.display = "block"
+
   render()
 
-if(!tokenTimer){
- tokenTimer = setInterval(checkToken,30000)
-}
+  if(!tokenTimer){
+
+   tokenTimer = setInterval(async ()=>{
+
+    const valid = await checkToken()
+
+    if(!valid){
+     clearInterval(tokenTimer)
+     tokenTimer = null
+     localStorage.removeItem("token")
+     alert("Session expired")
+     location.reload()
+    }
+
+   },30000)
+
+  }
 
  }else{
 
-  document.getElementById("loginErr").textContent="User หรือ Password ไม่ถูกต้อง"
+  document.getElementById("loginErr").textContent =
+  "User หรือ Password ไม่ถูกต้อง"
 
  }
 
 }catch(e){
 
- document.getElementById("loginErr").textContent="Server error"
+ document.getElementById("loginErr").textContent =
+ "Server error"
 
 }
 
+btn.disabled = false
+
 }
+
 
 </script>
 
