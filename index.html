@@ -529,7 +529,7 @@ async function login(){
   btn.disabled = true;
   loginErrEl.textContent = "กำลังตรวจสอบ...";
 
-  // 🔐 สร้าง / ดึง device ID
+  // 🔐 DEVICE ID
   let deviceId = localStorage.getItem("device_id");
   if(!deviceId){
     deviceId = "dev_" + Math.random().toString(36).slice(2);
@@ -541,14 +541,18 @@ async function login(){
     const user = userInput.value;
     const pass = passInput.value;
 
-    // ===== STEP 1: HANDSHAKE =====
+    // ===== STEP 1: HANDSHAKE (แก้แล้ว) =====
     const hs = await fetch(
       "https://morning-block-55bb.havanalanna.workers.dev/handshake?user="
       + encodeURIComponent(user)
       + "&pass=" + encodeURIComponent(pass)
+      + "&device=" + deviceId
+      + "&browser=" + encodeURIComponent(navigator.userAgent)
+      + "&os=" + encodeURIComponent(navigator.platform)
     );
 
     const hsData = await hs.json();
+    console.log("HANDSHAKE:", hsData);
 
     if(hsData.status !== "ok"){
       loginErrEl.textContent = "❌ handshake ไม่ผ่าน";
@@ -567,6 +571,7 @@ async function login(){
     );
 
     const data = await res.json();
+    console.log("LOGIN:", data);
 
     if(data.status === "ok"){
 
@@ -615,7 +620,6 @@ async function login(){
     btn.disabled = false;
   }
 }
-
 
 </script>
 
