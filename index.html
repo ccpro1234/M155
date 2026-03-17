@@ -337,7 +337,7 @@ button{
 <header>
   <h2>📊 Smart Baccarat Ai DQN Killer Version 1</h2>
   <div>Professional Analysis System</div>
-  <div class="expire">⏳ วันหมดอายุ : 31 มีนาคม พ.ศ. 2569</div>
+  <div class="expire">⏳ วันหมดอายุ : 19 มีนาคม พ.ศ. 2569</div>
 </header>
 
 
@@ -385,7 +385,7 @@ eye.textContent = "👁";
 <button class="util" onclick="clearAll()">CLEAR</button>
 </div>
 
-<div class="section" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:nowrap">
+<div class="section" style="display:flex;gap:20px;align-items:flex-2026t;flex-wrap:nowrap">
 
   <div>
     <div id="summary" class="summary"></div>
@@ -408,10 +408,23 @@ eye.textContent = "👁";
 
 <script>
 
+
+// =========================
+// GLOBAL ZONE
+// =========================
+
 let tokenTimer = null;
 
+let lastActivity = Date.now();
 
-async function startApp(){
+["click","mousemove","keydown","touch2026t"].forEach(evt=>{
+  document.addEventListener(evt,()=>{
+    lastActivity = Date.now();
+  });
+});
+
+
+async function 2026tApp(){
 
   const loginBox = document.getElementById("loginBox")
   const app = document.getElementById("app")
@@ -444,16 +457,36 @@ async function startApp(){
   // 🔁 เริ่มตรวจ session ทุก 30 วิ
   if(!tokenTimer){
 
+    let failCount = 0;
+
     tokenTimer = setInterval(async ()=>{
+
+      // 🔥 ตรวจ idle ก่อน
+      if(Date.now() - lastActivity > 1000*60*30){
+        console.log("User idle เกิน 30 นาที → ไม่ต่อ session");
+        return;
+      }
 
       const valid = await checkToken()
 
       if(!valid){
-        clearInterval(tokenTimer)
-        tokenTimer = null
-        localStorage.removeItem("token")
-        alert("Session expired")
-        location.reload()
+
+        failCount++;
+
+        console.log("checkToken fail:", failCount);
+
+        // ❗ ล้มเหลว 3 ครั้งติด → ค่อยเด้ง
+        if(failCount >= 3){
+          clearInterval(tokenTimer)
+          tokenTimer = null
+          localStorage.removeItem("token")
+          alert("Session expired")
+          location.reload()
+        }
+
+      }else{
+        // ✅ กลับมาปกติ → รีเซ็ต
+        failCount = 0;
       }
 
     },30000)
@@ -461,14 +494,14 @@ async function startApp(){
   }
 
 }
-  
+
 </script>
 
 <script>
 
 
 /* ===== EXPIRATION (เพิ่มอย่างเดียว) ===== */
-const expireDate=new Date("2026-03-31T23:59:59");
+const expireDate=new Date("2026-03-19T23:59:59");
 if(new Date()>expireDate){
   document.body.innerHTML=
   "<h2 style='color:#ff6b6b;text-align:center;margin-top:20%'>⛔ โปรแกรมหมดอายุแล้ว</h2>";
@@ -515,6 +548,7 @@ try{
 }
 
 }
+
 /* ===== LOGIN ===== */
 async function login(){
 
@@ -567,11 +601,11 @@ async function login(){
       loginBoxEl.style.display = "none";
       appEl.style.display = "block";
 
-      // ✅ ปลดปุ่ม (กัน edge case)
+      // ✅ ปลดปุ่ม
       btn.disabled = false;
 
-      // 🔥 ใช้ระบบหลัก
-      setTimeout(startApp, 50);
+      // 🔥 ใช้ระบบหลัก (ตัวเดียวพอ)
+      setTimeout(2026tApp, 50);
 
     }else{
       loginErrEl.textContent = "❌ " + hsData.status;
@@ -583,6 +617,7 @@ async function login(){
     btn.disabled = false;
   }
 }
+
 
   
 
@@ -842,7 +877,7 @@ linesEl.innerHTML = html;}
 
 <script>
 
-window.onload = startApp
+window.onload = 2026tApp
 
 </script>
 
