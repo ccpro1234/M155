@@ -516,76 +516,104 @@ try{
 }
 
 /* ===== LOGIN ===== */
-
 async function login(){
 
-const btn = document.querySelector(".loginPanel button")
-btn.disabled = true
+  const btn = document.querySelector(".loginPanel button");
+  const userInput = document.getElementById("user");
+  const passInput = document.getElementById("pass");
 
-try{
+  const loginBoxEl = document.getElementById("loginBox");
+  const appEl = document.getElementById("app");
+  const loginErrEl = document.getElementById("loginErr");
 
- const user = document.getElementById("user").value
- const pass = document.getElementById("pass").value
+  btn.disabled = true;
+  loginErrEl.textContent = "กำลังตรวจสอบ...";
 
- const res = await fetch(
- "https://morning-block-55bb.havanalanna.workers.dev/handshake?user="
- + encodeURIComponent(user) +
- "&pass=" + encodeURIComponent(pass)
- )
-
- const data = await res.json()
-
- if(data.status === "ok"){
-
-  localStorage.setItem("token", data.token)
-
-  const ok = await checkToken()
-
-  if(!ok){
-   localStorage.removeItem("token")
-   location.reload()
-   return
+  // 🔐 สร้าง / ดึง device ID
+  let deviceId = localStorage.getItem("device_id");
+  if(!deviceId){
+    deviceId = "dev_" + Math.random().toString(36).slice(2);
+    localStorage.setItem("device_id", deviceId);
   }
 
-  document.getElementById("loginBox").style.display = "none"
-  document.getElementById("app").style.display = "block"
+  try{
 
-  render()
+    const user = userInput.value;
+    const pass = passInput.value;
 
-  if(!tokenTimer){
+    // ===== STEP 1: HANDSHAKE =====
+    const hs = await fetch(
+      "https://morning-block-55bb.havanalanna.workers.dev/handshake?user="
+      + encodeURIComponent(user)
+      + "&pass=" + encodeURIComponent(pass)
+    );
 
-   tokenTimer = setInterval(async ()=>{
+    const hsData = await hs.json();
 
-    const valid = await checkToken()
-
-    if(!valid){
-     clearInterval(tokenTimer)
-     tokenTimer = null
-     localStorage.removeItem("token")
-     alert("Session expired")
-     location.reload()
+    if(hsData.status !== "ok"){
+      loginErrEl.textContent = "❌ handshake ไม่ผ่าน";
+      btn.disabled = false;
+      return;
     }
 
-   },30000)
+    // ===== STEP 2: LOGIN =====
+    const res = await fetch(
+      "https://morning-block-55bb.havanalanna.workers.dev/?user="
+      + encodeURIComponent(user)
+      + "&pass=" + encodeURIComponent(pass)
+      + "&device=" + deviceId
+      + "&browser=" + encodeURIComponent(navigator.userAgent)
+      + "&os=" + encodeURIComponent(navigator.platform)
+    );
 
+    const data = await res.json();
+
+    if(data.status === "ok"){
+
+      loginBoxEl.style.display = "none";
+      appEl.style.display = "block";
+
+      // 💾 save session
+      localStorage.setItem("user", user);
+      localStorage.setItem("pass", pass);
+
+      setTimeout(render, 50);
+
+      // 🔒 CHECK LICENSE ทุก 30 วิ
+      setInterval(async ()=>{
+
+        try{
+
+          const r = await fetch(
+            "https://morning-block-55bb.havanalanna.workers.dev/?user="
+            + encodeURIComponent(user)
+            + "&pass=" + encodeURIComponent(pass)
+            + "&device=" + deviceId
+          );
+
+          const j = await r.json();
+
+          if(j.status !== "ok"){
+            alert("⛔ License ถูกปิดใช้งาน / หมดอายุ");
+            localStorage.clear();
+            location.reload();
+          }
+
+        }catch(e){
+          console.log("License check error");
+        }
+
+      },30000);
+
+    }else{
+      loginErrEl.textContent = "❌ User หรือ Password ไม่ถูกต้อง";
+      btn.disabled = false;
+    }
+
+  }catch(e){
+    loginErrEl.textContent = "❌ ไม่สามารถเชื่อมต่อ Server";
+    btn.disabled = false;
   }
-
- }else{
-
-  document.getElementById("loginErr").textContent =
-  "User หรือ Password ไม่ถูกต้อง"
-
- }
-
-}catch(e){
-
- document.getElementById("loginErr").textContent =
- "Server error"
-
-}
-
-btn.disabled = false
-
 }
 
 
